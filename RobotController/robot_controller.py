@@ -5,6 +5,7 @@ RobotController Module - Handles robot operations using RoboDK API
 from robodk import robolink, robomath
 from robodk.robolink import Robolink, Item
 import time
+from gripper_controller import GripperController
 
 
 class RobotController:
@@ -15,12 +16,14 @@ class RobotController:
     moving to home position, moving to specific poses, and pick-and-place operations.
     """
     
-    def __init__(self, robot_name=None):
+    def __init__(self, robot_name=None, robot_ip=None, use_gripper=True):
         """
         Initialize the RobotController.
         
         Args:
             robot_name (str, optional): Name of the robot in RoboDK. If None, uses the first available robot.
+            robot_ip (str, optional): IP address of the UR robot (deprecated, kept for compatibility).
+            use_gripper (bool): Whether to use the gripper. Default is True.
         """
         self.rdk = Robolink()
         
@@ -37,6 +40,20 @@ class RobotController:
         
         # Store home position (current position on initialization)
         self.home_joints = self.robot.Joints()
+        
+        # Initialize gripper if requested
+        self.gripper = None
+        if use_gripper:
+            try:
+                self.gripper = GripperController(robot_item=self.robot)
+                if self.gripper.connect():
+                    print("Gripper initialized successfully")
+                else:
+                    print("Warning: Gripper connection failed, continuing without gripper")
+                    self.gripper = None
+            except Exception as e:
+                print(f"Warning: Failed to initialize gripper: {e}")
+                self.gripper = None
     
     def move_to_home(self):
         """
@@ -202,21 +219,23 @@ class RobotController:
             close (bool): True to close gripper, False to open.
         
         Note:
-            This is a placeholder method. Implement actual gripper control
-            based on your specific gripper hardware and RoboDK setup.
+            Uses the OnRobot RG2 gripper if connected, otherwise simulates.
         """
-        # Placeholder for gripper control
-        # In a real implementation, you would use RoboDK's tool commands
-        # or communicate with the actual gripper hardware
-        action = "Closing" if close else "Opening"
-        print(f"{action} gripper (simulated)")
-        
-        # Example: If using RoboDK gripper simulation
-        # tool = self.robot.Childs()[0]  # Get the tool/gripper
-        # if close:
-        #     tool.setParam('Gripper', 1)
-        # else:
-        #     tool.setParam('Gripper', 0)
+        if self.gripper and self.gripper.is_connected():
+            # Use real gripper
+            if close:
+                success = self.gripper.close()
+                if success:
+                    self.gripper.wait_for_completion()
+            else:
+                success = self.gripper.open()
+                if success:
+                    self.gripper.wait_for_completion()
+        else:
+            # Simulated gripper
+            action = "Closing" if close else "Opening"
+            print(f"{action} gripper (simulated)")
+            time.sleep(0.5)
     
     def get_current_pose(self):
         """
@@ -243,5 +262,69 @@ class RobotController:
         Disconnect from the robot and clean up resources.
         """
         print(f"Disconnecting from robot: {self.robot.Name()}")
+        
+        # Disconnect gripper if connected
+        if self.gripper and self.gripper.is_connected():
+            self.gripper.disconnect()
+        
         # Connection is automatically closed when object is destroyed
         print("Disconnected successfully.")
+    
+    def gripper_open(self, width_mm=None, force_n=None):
+        """
+        Open the gripper to specified width.
+        
+        Args:
+            width_mm (float, optional): Target width in mm
+            force_n (float, optional): Force in N
+        
+        Returns:
+            bool: True if successful
+        """
+        if self.gripper and self.gripper.is_connected():
+            return self.gripper.open(width_mm, force_n)
+        else:
+            print("Opening gripper (simulated)")
+            time.sleep(0.5)
+            return True
+    
+    def gripper_close(self, width_mm=None, force_n=None):
+        """
+        Close the gripper to specified width.
+        
+        Args:
+            width_mm (float, optional): Target width in mm
+            force_n (float, optional): Gripping force in N
+        
+        Returns:
+            bool: True if successful
+        """
+        if self.gripper and self.gripper.is_connected():
+            return self.gripper.close(width_mm, force_n)
+        else:
+            print("Closing gripper (simulated)")
+            time.sleep(0.5)
+            return True
+    
+    def gripper_status(self):
+        """
+        Get gripper status.
+        
+        Returns:
+            dict: Gripper status or None if not connected
+        """
+        if self.gripper and self.gripper.is_connected():
+            return self.gripper.get_status()
+        return None
+    
+    def is_object_gripped(self):
+        """
+        Check if an object is gripped.
+        
+        Returns:
+            bool: True if object detected
+        """
+        if self.gripper and self.gripper.is_connected():
+            return self.gripper.is_object_gripped()
+        return False
+

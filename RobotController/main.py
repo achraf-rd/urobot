@@ -40,10 +40,17 @@ def main():
         print("Initializing Robot Controller")
         print("=" * 60)
         
+        # Prompt for gripper usage
+        use_gripper = input("\nUse OnRobot RG2 gripper? (y/n, default: y): ").strip().lower()
+        if not use_gripper or use_gripper == 'y':
+            use_gripper = True
+        else:
+            use_gripper = False
+        
         # Initialize the robot controller
-        # If you have a specific robot name in RoboDK, pass it as argument
-        # e.g., robot = RobotController("UR5")
-        robot = RobotController()
+        # Gripper is controlled via URScript through RoboDK
+        # e.g., robot = RobotController("UR5", use_gripper=True)
+        robot = RobotController(use_gripper=use_gripper)
         
         print("\nRobot initialized successfully!")
         print(f"Current position: {robot.get_current_pose()}")
@@ -73,6 +80,12 @@ def main():
         print('  {"command": "wait", "duration": 2.0}')
         print('  {"command": "get_pose"}')
         print('  {"command": "get_joints"}')
+        print('\nGripper commands:')
+        print('  {"command": "gripper_open"}')
+        print('  {"command": "gripper_open", "width_mm": 110, "force_n": 20}')
+        print('  {"command": "gripper_close"}')
+        print('  {"command": "gripper_close", "width_mm": 30, "force_n": 25}')
+        print('  {"command": "gripper_status"}')
         
         # ====================================
         # Step 3: Start the Server
