@@ -207,7 +207,9 @@ class GripperController:
         # RG2 gripper doesn't have a direct "busy" status
         # Wait a fixed time for the gripper to complete
         time.sleep(0.5)  # 500ms is usually enough for RG2
-        return Truripped(self) -> bool:
+        return True
+    
+    def is_gripped(self) -> bool:
         """
         Check if an object is currently gripped.
         
