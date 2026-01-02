@@ -244,6 +244,142 @@ def example_pick_and_place_old():
     Example: Pick and place operation.
     """
     # Replace with your server's IP address
+    SERVER_IP = "192.168.137.1"  # Change this to your server's IP
+    
+    # Create client and connect
+    client = RobotClient(SERVER_IP)
+    
+    if not client.connect():
+        print("Failed to connect to server. Make sure:")
+        print("1. The server is running (python main.py)")
+        print(f"2. The IP address {SERVER_IP} is correct")
+        print("3. Port 5000 is not blocked by firewall")
+        return
+    
+    try:
+        # Get current pose
+        print("\n1. Getting current pose...")
+        response = client.get_pose()
+        print(f"Response: {response}")
+        
+        # Move to home position
+        print("\n2. Moving to home position...")
+        response = client.move_home()
+        print(f"Response: {response}")
+        
+        # Wait a bit
+        print("\n3. Waiting 1 second...")
+        response = client.wait(1.0)
+        print(f"Response: {response}")
+        
+        # Pick object
+        print("\n4. Picking object...")
+        pick_position = [300, 200, 150]
+        pick_orientation = [0, 90, 0]
+        response = client.pick_object(pick_position, pick_orientation)
+        print(f"Response: {response}")
+        
+        # Wait a bit
+        print("\n5. Waiting 1 second...")
+        response = client.wait(1.0)
+        print(f"Response: {response}")
+        
+        # Place object
+        print("\n6. Placing object...")
+        place_position = [400, 200, 150]
+        place_orientation = [0, 90, 0]
+        response = client.place_object(place_position, place_orientation)
+        print(f"Response: {response}")
+        
+        # Move back to home
+        print("\n7. Returning to home...")
+        response = client.move_home()
+        print(f"Response: {response}")
+        
+        print("\n✓ Pick and place sequence completed successfully!")
+        
+    except Exception as e:
+        print(f"\nError during operation: {e}")
+    
+    finally:
+        # Always disconnect
+        client.disconnect()
+
+
+def test_place_by_name():
+    """
+    Test placing at named locations (bad bin, good bin).
+    """
+    print("\n" + "="*60)
+    print("Test: Place at Named Locations")
+    print("="*60)
+    
+    # Get server IP
+    SERVER_IP = input("Enter server IP address (default: 192.168.137.1): ") or "192.168.137.1"
+    
+    # Create client and connect
+    client = RobotClient(SERVER_IP)
+    
+    if not client.connect():
+        print("Failed to connect to server!")
+        return
+    
+    try:
+        # List available positions first
+        print("\n1. Getting available positions...")
+        response = client.list_positions()
+        if response.get('status') == 'success':
+            positions = response.get('positions', [])
+            print(f"   Available positions: {positions}")
+            
+            # Filter for bin locations
+            bins = [p for p in positions if 'bin' in p.lower()]
+            print(f"   Available bins: {bins}")
+        
+        # Test placing at bad bin
+        print("\n2. Testing place at 'bad bin'...")
+        response = client.place_piece('bad bin')
+        print(f"   Response: {response}")
+        
+        if response.get('status') == 'success':
+            print("   ✓ Successfully placed at bad bin!")
+            print(f"   Position used: {response.get('position')}")
+            print(f"   Orientation used: {response.get('orientation')}")
+        else:
+            print(f"   ✗ Failed: {response.get('message')}")
+        
+        # Wait between movements
+        print("\n3. Waiting 2 seconds...")
+        client.wait(2.0)
+        
+        # Test placing at good bin
+        print("\n4. Testing place at 'good bin'...")
+        response = client.place_piece('good bin')
+        print(f"   Response: {response}")
+        
+        if response.get('status') == 'success':
+            print("   ✓ Successfully placed at good bin!")
+            print(f"   Position used: {response.get('position')}")
+            print(f"   Orientation used: {response.get('orientation')}")
+        else:
+            print(f"   ✗ Failed: {response.get('message')}")
+        
+        print("\n✓ Place test completed!")
+        
+    except Exception as e:
+        print(f"\nError during test: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    finally:
+        client.disconnect()
+
+
+def example_pick_and_place_old_manual():
+    """
+    Example: Pick and place operation.
+    """
+    # Replace with your server's IP address
     SERVER_IP = "0.0.0.0"  # Change this to your server's IP
     
     # Create client and connect
@@ -374,15 +510,18 @@ if __name__ == "__main__":
     
     print("Robot Client Example")
     print("=" * 50)
-    print("1 - Run pick and place example")
-    print("2 - Interactive mode")
+    print("1 - Run pick and place example (with named positions)")
+    print("2 - Test place by location name")
+    print("3 - Interactive mode")
     print("=" * 50)
     
-    choice = input("Select mode (1 or 2): ").strip()
+    choice = input("Select mode (1, 2, or 3): ").strip()
     
     if choice == '1':
         example_pick_and_place()
     elif choice == '2':
+        test_place_by_name()
+    elif choice == '3':
         interactive_mode()
     else:
         print("Invalid choice")
