@@ -101,6 +101,22 @@ class RobotClient:
         }
         return self.send_command(command)
     
+    def pick_piece(self, piece_name):
+        """
+        Pick a piece using predefined position from server.
+        
+        Args:
+            piece_name (str): Name of piece (e.g., 'piece 1', 'piece 2')
+        
+        Returns:
+            dict: Response from server
+        """
+        command = {
+            "command": "pick_piece",
+            "piece": piece_name
+        }
+        return self.send_command(command)
+    
     def place_object(self, position, orientation):
         """
         Place object at specified position and orientation.
@@ -113,6 +129,22 @@ class RobotClient:
             "command": "place",
             "position": position,
             "orientation": orientation
+        }
+        return self.send_command(command)
+    
+    def place_piece(self, location_name):
+        """
+        Place a piece at predefined location from server.
+        
+        Args:
+            location_name (str): Name of location (e.g., 'bad bin', 'good bin')
+        
+        Returns:
+            dict: Response from server
+        """
+        command = {
+            "command": "place_piece",
+            "location": location_name
         }
         return self.send_command(command)
     
@@ -129,6 +161,16 @@ class RobotClient:
         }
         return self.send_command(command)
     
+    def list_positions(self):
+        """
+        Get list of all available predefined positions on server.
+        
+        Returns:
+            dict: Response with list of position names
+        """
+        command = {"command": "list_positions"}
+        return self.send_command(command)
+    
     def get_pose(self):
         """Get current robot pose."""
         command = {"command": "get_pose"}
@@ -141,6 +183,63 @@ class RobotClient:
 
 
 def example_pick_and_place():
+    """
+    Example: Pick and place operation using predefined positions.
+    """
+    # Replace with your server's IP address
+    SERVER_IP = "192.168.137.1"  # Change this to your server's IP
+    
+    # Create client and connect
+    client = RobotClient(SERVER_IP)
+    
+    if not client.connect():
+        print("Failed to connect to server. Make sure:")
+        print("1. The server is running (python main.py)")
+        print(f"2. The IP address {SERVER_IP} is correct")
+        print("3. Port 5000 is not blocked by firewall")
+        return
+    
+    try:
+        # List available positions
+        print("\n1. Getting available positions...")
+        response = client.list_positions()
+        print(f"Response: {response}")
+        if response.get('status') == 'success':
+            print(f"Available positions: {response.get('positions')}")
+        
+        # Pick piece 1
+        print("\n2. Picking piece 1...")
+        response = client.pick_piece('piece 1')
+        print(f"Response: {response}")
+        
+        if response.get('status') != 'success':
+            print("Failed to pick piece!")
+            return
+        
+        # Wait a bit
+        print("\n3. Waiting 1 second...")
+        client.wait(1.0)
+        
+        # Place in bad bin
+        print("\n4. Placing in bad bin...")
+        response = client.place_piece('bad bin')
+        print(f"Response: {response}")
+        
+        if response.get('status') != 'success':
+            print("Failed to place piece!")
+            return
+        
+        print("\n✓ Pick and place sequence completed successfully!")
+        
+    except Exception as e:
+        print(f"\nError during operation: {e}")
+    
+    finally:
+        # Always disconnect
+        client.disconnect()
+
+
+def example_pick_and_place_old():
     """
     Example: Pick and place operation.
     """

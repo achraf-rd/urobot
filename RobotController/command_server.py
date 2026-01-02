@@ -6,6 +6,7 @@ import socket
 import json
 import threading
 from typing import Callable, Dict, Any
+from positions_manager import PositionsManager
 
 
 class CommandServer:
@@ -29,6 +30,7 @@ class CommandServer:
         self.robot_controller = robot_controller
         self.server_socket = None
         self.running = False
+        self.positions_manager = PositionsManager()
         self.command_handlers = self._setup_command_handlers()
     
     def _setup_command_handlers(self) -> Dict[str, Callable]:
@@ -43,9 +45,12 @@ class CommandServer:
             'move_pose': self._handle_move_pose,
             'pick': self._handle_pick,
             'place': self._handle_place,
+            'pick_piece': self._handle_pick_piece,
+            'place_piece': self._handle_place_piece,
             'wait': self._handle_wait,
             'get_pose': self._handle_get_pose,
             'get_joints': self._handle_get_joints,
+            'list_positions': self._handle_list_positions,
         }
     
     def _handle_move_home(self, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -88,6 +93,77 @@ class CommandServer:
         """Handle get_joints command."""
         joints = self.robot_controller.get_current_joints()
         return {'status': 'success', 'command': 'get_joints', 'joints': joints}
+    
+    def _handle_pick_piece(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle pick_piece command with named position."""
+        piece_name = data.get('piece', '')
+        
+        if not piece_name:
+            return {'status': 'error', 'message': 'No piece name specified'}
+        
+        # Get position from positions manager
+        pose_data = self.positions_manager.get_position(piece_name)
+        
+        if not pose_data:
+            available = self.positions_manager.get_all_positions()
+            return {
+                'status': 'error',
+                'message': f'Unknown piece: {piece_name}',
+                'available_positions': available
+            }
+        
+        # Execute pick with the position from file
+        position = pose_data['position']
+        orientation = pose_data['orientation']
+        success = self.robot_controller.pick_object(position, orientation)
+        
+        return {
+            'status': 'success' if success else 'error',
+            'command': 'pick_piece',
+            'piece': piece_name,
+            'position': position,
+            'orientation': orientation
+        }
+    
+    def _handle_place_piece(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle place_piece command with named position."""
+        location_name = data.get('location', '')
+        
+        if not location_name:
+            return {'status': 'error', 'message': 'No location name specified'}
+        
+        # Get position from positions manager
+        pose_data = self.positions_manager.get_position(location_name)
+        
+        if not pose_data:
+            available = self.positions_manager.get_all_positions()
+            return {
+                'status': 'error',
+                'message': f'Unknown location: {location_name}',
+                'available_positions': available
+            }
+        
+        # Execute place with the position from file
+        position = pose_data['position']
+        orientation = pose_data['orientation']
+        success = self.robot_controller.place_object(position, orientation)
+        
+        return {
+            'status': 'success' if success else 'error',
+            'command': 'place_piece',
+            'location': location_name,
+            'position': position,
+            'orientation': orientation
+        }
+    
+    def _handle_list_positions(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle list_positions command to get all available positions."""
+        positions = self.positions_manager.get_all_positions()
+        return {
+            'status': 'success',
+            'command': 'list_positions',
+            'positions': positions
+        }
     
     def _process_command(self, command_data: Dict[str, Any]) -> Dict[str, Any]:
         """
