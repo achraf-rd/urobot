@@ -5,7 +5,7 @@ RobotController Module - Handles robot operations using RoboDK API
 from robodk import robolink, robomath
 from robodk.robolink import Robolink, Item
 import time
-from gripper_controller import GripperController
+from dashboard_gripper import DashboardGripper
 from positions_manager import PositionsManager
 
 
@@ -74,19 +74,24 @@ class RobotController:
        
         self.set_speed(speed)
         self.set_acceleration(acceleration)
+        
         # Initialize gripper if requested
         self.gripper = None
-        if use_gripper:
+        self.robot_ip = robot_ip
+        if use_gripper and robot_ip:
             try:
-                self.gripper = GripperController(robot_item=self.robot)
+                self.gripper = DashboardGripper(robot_ip=robot_ip)
                 if self.gripper.connect():
-                    print("Gripper initialized successfully")
+                    print("Gripper initialized successfully via Dashboard Server")
                 else:
                     print("Warning: Gripper connection failed, continuing without gripper")
                     self.gripper = None
             except Exception as e:
                 print(f"Warning: Failed to initialize gripper: {e}")
                 self.gripper = None
+        elif use_gripper and not robot_ip:
+            print("Warning: Robot IP not provided, gripper cannot be initialized")
+            print("  Provide robot_ip parameter to enable gripper control")
     
     def set_speed(self, speed_percent):
         """
@@ -186,14 +191,22 @@ class RobotController:
             print(f"Error moving to pose: {e}")
             return False
     
-    def pick_object(self, position, orientation):
+    def pick_object(self, position, orientation, pick_offset_mm=0.13):
         """
         Execute a pick operation at the specified position and orientation.
         The received pose is the approach position (above the object).
         
+        Sequence:
+        1. Move to approach position
+        2. Open gripper
+        3. Move down by pick_offset_mm
+        4. Close gripper
+        5. Move back to approach position
+        
         Args:
             position (list): [x, y, z] coordinates in mm (approach position)
             orientation (list): [rx, ry, rz] orientation angles in degrees
+            pick_offset_mm (float): Distance to move down to grasp object (default: 50mm)
         
         Returns:
             bool: True if successful, False otherwise.
@@ -206,36 +219,47 @@ class RobotController:
             approach_pose = position + orientation
             approach_target = robomath.TxyzRxyz_2_Pose(approach_pose)
             
-            # # Calculate pick position (50mm down on Z)
-            # pick_pose = approach_pose.copy()
-            # pick_pose[2] -= 50  # 50mm down from approach
-            # pick_target = robomath.TxyzRxyz_2_Pose(pick_pose)
+            # Calculate pick position (move down on Z)
+            pick_pose = approach_pose.copy()
+            pick_pose[2] -= pick_offset_mm  # Move down from approach
+            pick_target = robomath.TxyzRxyz_2_Pose(pick_pose)
             
             print(f"Picking object at approach position: {position}")
             
-            # Move to approach position
+            # Step 1: Move to approach position
+            print("  → Moving to approach position...")
             self.robot.MoveJ(approach_target)
             self.robot.WaitMove()
             
-            # # Open gripper before approaching object
-            # print("Opening gripper...")
-            # self._activate_gripper(False)
-            # time.sleep(0.5)
+            # Step 2: Open gripper
+            if self.gripper and self.gripper.is_connected():
+                print("  → Opening gripper...")
+                self.gripper.open()
+                self.gripper.wait_completion(timeout=5)
+            else:
+                print("  → Opening gripper (simulated)...")
+                time.sleep(1)
             
-            # # Move down to pick position
-            # self.robot.MoveL(pick_target)
-            # self.robot.WaitMove()
+            # Step 3: Move down to pick position
+            print(f"  → Moving down {pick_offset_mm}mm to grasp object...")
+            self.robot.MoveL(pick_target)
+            self.robot.WaitMove()
             
-            # # Close gripper to grip object
-            # print("Closing gripper...")
-            # self._activate_gripper(True)
-            # time.sleep(0.5)
+            # Step 4: Close gripper to grip object
+            if self.gripper and self.gripper.is_connected():
+                print("  → Closing gripper...")
+                self.gripper.close()
+                self.gripper.wait_completion(timeout=5)
+            else:
+                print("  → Closing gripper (simulated)...")
+                time.sleep(1)
             
-            # # Move back to approach position
-            # self.robot.MoveL(approach_target)
-            # self.robot.WaitMove()
+            # Step 5: Move back to approach position
+            print("  → Moving back to approach position...")
+            self.robot.MoveL(approach_target)
+            self.robot.WaitMove()
             
-            print("Pick operation completed.")
+            print("✓ Pick operation completed.")
             return True
         except Exception as e:
             print(f"Error during pick operation: {e}")
@@ -244,7 +268,10 @@ class RobotController:
     def place_object(self, position, orientation):
         """
         Execute a place operation at the specified position and orientation.
-        Moves to the received pose and opens the gripper to release the object.
+        
+        Sequence:
+        1. Move to place position
+        2. Open gripper to release object
         
         Args:
             position (list): [x, y, z] coordinates in mm (place position)
@@ -262,16 +289,21 @@ class RobotController:
             
             print(f"Placing object at position: {position}")
             
-            # Move to place position
+            # Step 1: Move to place position
+            print("  → Moving to place position...")
             self.robot.MoveJ(target_pose)
             self.robot.WaitMove()
             
-            # # Open gripper to release object
-            # print("Opening gripper...")
-            # self._activate_gripper(False)
-            # time.sleep(0.5)
+            # Step 2: Open gripper to release object
+            if self.gripper and self.gripper.is_connected():
+                print("  → Opening gripper to release object...")
+                self.gripper.open()
+                self.gripper.wait_completion(timeout=5)
+            else:
+                print("  → Opening gripper (simulated)...")
+                time.sleep(1)
             
-            print("Place operation completed.")
+            print("✓ Place operation completed.")
             return True
         except Exception as e:
             print(f"Error during place operation: {e}")
