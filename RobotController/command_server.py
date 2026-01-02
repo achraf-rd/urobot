@@ -137,8 +137,18 @@ class CommandServer:
                     command_data = json.loads(data.decode('utf-8'))
                     print(f"Received command: {command_data}")
                     
-                    # Process the command
-                    response = self._process_command(command_data)
+                    # Process the command (this might take time for robot movements)
+                    try:
+                        response = self._process_command(command_data)
+                    except Exception as cmd_error:
+                        print(f"Error executing command: {cmd_error}")
+                        import traceback
+                        traceback.print_exc()
+                        response = {
+                            'status': 'error',
+                            'message': str(cmd_error),
+                            'command': command_data.get('command', 'unknown')
+                        }
                     
                     # Send response back to client
                     response_json = json.dumps(response) + '\n'
@@ -152,9 +162,15 @@ class CommandServer:
                     }
                     client_socket.send(json.dumps(error_response).encode('utf-8'))
                     print(f"JSON decode error: {e}")
+                except Exception as e:
+                    print(f"Error processing message: {e}")
+                    import traceback
+                    traceback.print_exc()
                 
         except Exception as e:
             print(f"Error handling client {address}: {e}")
+            import traceback
+            traceback.print_exc()
         finally:
             client_socket.close()
             print(f"Client disconnected: {address}")

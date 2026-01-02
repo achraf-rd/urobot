@@ -43,25 +43,24 @@ class RobotController:
         
         # Connect to real robot if requested
         if connect_real_robot:
-            if robot_ip:
-                print(f"\nConnecting to real robot at {robot_ip}...")
-                self.robot.setConnectionParams(robot_ip, 30003, '/', 'anonymous', '')
-                success = self.robot.Connect()
-                if success:
-                    print("✓ Successfully connected to real robot!")
-                    # Set RoboDK to run on real robot (not simulation)
-                    self.rdk.setRunMode(robolink.RUNMODE_RUN_ROBOT)
-                else:
-                    print("✗ Failed to connect to real robot. Check:")
-                    print("  1. Robot IP address is correct")
-                    print("  2. Robot is powered on")
-                    print("  3. Network connection is working")
-                    print("  4. Robot is not in emergency stop")
-                    raise Exception("Failed to connect to real robot")
+            print("\nSetting mode to RUN on REAL ROBOT...")
+            print("Make sure you have already connected to the robot in RoboDK:")
+            print("  Right-click robot → Connect to robot → Connect")
+            
+            # Check if robot is already connected in RoboDK
+            connection_status = self.robot.ConnectedState()
+            if connection_status == robolink.ROBOTCOM_READY:
+                print("✓ Robot is already connected in RoboDK")
+            elif connection_status == robolink.ROBOTCOM_WORKING:
+                print("⚠ Robot is connected but busy")
             else:
-                print("Warning: connect_real_robot=True but no robot_ip provided")
-                print("Continuing in simulation mode...")
-                self.rdk.setRunMode(robolink.RUNMODE_SIMULATE)
+                print(f"⚠ Robot connection status: {connection_status}")
+                print("  Please connect manually in RoboDK first:")
+                print("  Right-click robot → Connect to robot → Select driver → Connect")
+            
+            # Set RoboDK to run on real robot (not simulation)
+            self.rdk.setRunMode(robolink.RUNMODE_RUN_ROBOT)
+            print("✓ RoboDK set to RUN mode (real robot)")
         else:
             print("Running in SIMULATION mode")
             self.rdk.setRunMode(robolink.RUNMODE_SIMULATE)
