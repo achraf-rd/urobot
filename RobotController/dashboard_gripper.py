@@ -48,7 +48,7 @@ class DashboardGripper:
             
             # Use RoboDK to run the program
             # RunProgram loads and runs a .urp program file from the robot
-            result = self.robot.RunProgram(program_name, True)
+            result = self.robot.RunProgram(program_name)
             
             print(f"Program execution result: {result}")
             return True
@@ -67,7 +67,7 @@ class DashboardGripper:
             print(f"Loading and running program: {program_name}")
             
             # Use RoboDK to run the program
-            result = self.robot.RunProgram(program_name, True)
+            result = self.robot.RunProgram(program_name)
             
             print(f"Program execution result: {result}")
             return True
