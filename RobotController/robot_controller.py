@@ -190,7 +190,7 @@ class RobotController:
             print(f"Error moving to pose: {e}")
             return False
     
-    def pick_object(self, position, orientation, pick_offset_mm=40):
+    def pick_object(self, position, orientation, pick_offset_mm=30):
         """
         Execute a pick operation at the specified position and orientation.
         The received pose is the approach position (above the object).

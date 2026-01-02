@@ -38,7 +38,7 @@ class DashboardGripper:
         self.connected = False
     
     def open(self, program_name="open-gripper.urp"):
-        """Open the gripper by loading and running a program via RoboDK."""
+        """Open the gripper by loading and running a .urp program on the robot."""
         if not self.connected:
             print("ERROR: Not connected to robot")
             return False
@@ -46,11 +46,17 @@ class DashboardGripper:
         try:
             print(f"Loading and running program: {program_name}")
             
-            # Use RoboDK to run the program
-            # RunProgram loads and runs a .urp program file from the robot
-            result = self.robot.RunProgram(program_name)
+            # Send Dashboard Server commands through RoboDK
+            # Load the program from robot's /programs/ directory
+            load_cmd = f"load /programs/{program_name}"
+            self.robot.RunCodeCustom(load_cmd, True)
+            time.sleep(0.5)
             
-            print(f"Program execution result: {result}")
+            # Start the program
+            play_cmd = "play"
+            self.robot.RunCodeCustom(play_cmd, True)
+            
+            print(f"Program {program_name} started")
             return True
             
         except Exception as e:
@@ -58,7 +64,7 @@ class DashboardGripper:
             return False
     
     def close(self, program_name="close-gripper.urp"):
-        """Close the gripper by loading and running a program via RoboDK."""
+        """Close the gripper by loading and running a .urp program on the robot."""
         if not self.connected:
             print("ERROR: Not connected to robot")
             return False
@@ -66,10 +72,17 @@ class DashboardGripper:
         try:
             print(f"Loading and running program: {program_name}")
             
-            # Use RoboDK to run the program
-            result = self.robot.RunProgram(program_name)
+            # Send Dashboard Server commands through RoboDK
+            # Load the program from robot's /programs/ directory
+            load_cmd = f"load /programs/{program_name}"
+            self.robot.RunCodeCustom(load_cmd, True)
+            time.sleep(0.5)
             
-            print(f"Program execution result: {result}")
+            # Start the program
+            play_cmd = "play"
+            self.robot.RunCodeCustom(play_cmd, True)
+            
+            print(f"Program {program_name} started")
             return True
             
         except Exception as e:
