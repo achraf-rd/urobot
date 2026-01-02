@@ -189,10 +189,11 @@ class RobotController:
     def pick_object(self, position, orientation):
         """
         Execute a pick operation at the specified position and orientation.
-        The received pose is the approach position (above the object).
+        Moves to the given pose.
+        Gripper control must be handled separately.
         
         Args:
-            position (list): [x, y, z] coordinates in mm (approach position)
+            position (list): [x, y, z] coordinates in mm
             orientation (list): [rx, ry, rz] orientation angles in degrees
         
         Returns:
@@ -202,37 +203,13 @@ class RobotController:
             if len(position) != 3 or len(orientation) != 3:
                 raise ValueError("Position and orientation must contain 3 elements each")
             
-            # Received pose is the approach position
-            approach_pose = position + orientation
-            approach_target = robomath.TxyzRxyz_2_Pose(approach_pose)
+            pose = position + orientation
+            target_pose = robomath.TxyzRxyz_2_Pose(pose)
             
-            # Calculate pick position (50mm down on Z)
-            pick_pose = approach_pose.copy()
-            pick_pose[2] -= 50  # 50mm down from approach
-            pick_target = robomath.TxyzRxyz_2_Pose(pick_pose)
+            print(f"Picking object at position: {position}")
             
-            print(f"Picking object at approach position: {position}")
-            
-            # Move to approach position
-            self.robot.MoveJ(approach_target)
-            self.robot.WaitMove()
-            
-            # Open gripper before approaching object
-            print("Opening gripper...")
-            self._activate_gripper(False)
-            time.sleep(0.5)
-            
-            # Move down to pick position
-            self.robot.MoveL(pick_target)
-            self.robot.WaitMove()
-            
-            # Close gripper to grip object
-            print("Closing gripper...")
-            self._activate_gripper(True)
-            time.sleep(0.5)
-            
-            # Move back to approach position
-            self.robot.MoveL(approach_target)
+            # Move to pick position
+            self.robot.MoveJ(target_pose)
             self.robot.WaitMove()
             
             print("Pick operation completed.")
@@ -244,7 +221,8 @@ class RobotController:
     def place_object(self, position, orientation):
         """
         Execute a place operation at the specified position and orientation.
-        Moves to the received pose and opens the gripper to release the object.
+        Moves to the received pose.
+        Gripper control must be handled separately.
         
         Args:
             position (list): [x, y, z] coordinates in mm (place position)
@@ -265,11 +243,6 @@ class RobotController:
             # Move to place position
             self.robot.MoveJ(target_pose)
             self.robot.WaitMove()
-            
-            # Open gripper to release object
-            print("Opening gripper...")
-            self._activate_gripper(False)
-            time.sleep(0.5)
             
             print("Place operation completed.")
             return True
