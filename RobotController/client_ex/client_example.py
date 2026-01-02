@@ -624,6 +624,119 @@ def example_pick_and_place_old_manual():
         client.disconnect()
 
 
+def interactive_position_test():
+    """
+    Interactive mode for testing positions by name.
+    Type position name (e.g., 'home', 'piece 1', 'bad bin') to move the robot there.
+    """
+    print("\n" + "="*60)
+    print("Interactive Position Test Mode")
+    print("="*60)
+    
+    # Get server IP
+    SERVER_IP = input("Enter server IP address (default: 192.168.137.1): ") or "192.168.137.1"
+    
+    # Create client and connect
+    client = RobotClient(SERVER_IP)
+    
+    if not client.connect():
+        print("Failed to connect to server!")
+        return
+    
+    try:
+        # Get all available positions
+        print("\nFetching available positions...")
+        response = client.list_positions()
+        
+        if response.get('status') != 'success':
+            print("Failed to get positions list!")
+            return
+        
+        positions = response.get('positions', [])
+        
+        # Display available positions
+        print("\n" + "="*60)
+        print("Available Positions:")
+        print("="*60)
+        for i, pos in enumerate(positions, 1):
+            print(f"  {i}. {pos}")
+        print("="*60)
+        print("\nCommands:")
+        print("  - Type position name (e.g., 'home pose', 'piece 1', 'bad bin')")
+        print("  - Type 'list' to show positions again")
+        print("  - Type 'quit' or 'exit' to stop")
+        print("="*60)
+        
+        while True:
+            # Get user input
+            user_input = input("\nEnter position name: ").strip()
+            
+            # Check for exit commands
+            if user_input.lower() in ['quit', 'exit', 'q']:
+                print("Exiting interactive mode...")
+                break
+            
+            # Check for list command
+            if user_input.lower() == 'list':
+                print("\n" + "="*60)
+                print("Available Positions:")
+                print("="*60)
+                for i, pos in enumerate(positions, 1):
+                    print(f"  {i}. {pos}")
+                print("="*60)
+                continue
+            
+            # Check if empty input
+            if not user_input:
+                print("Please enter a position name or 'quit' to exit")
+                continue
+            
+            # Special handling for home pose
+            if user_input.lower() in ['home', 'home pose']:
+                print(f"\nMoving to home pose...")
+                response = client.move_home()
+            else:
+                # Try to find matching position (case-insensitive)
+                matching_pos = None
+                for pos in positions:
+                    if pos.lower() == user_input.lower():
+                        matching_pos = pos
+                        break
+                
+                if matching_pos:
+                    print(f"\nMoving to '{matching_pos}'...")
+                    response = client.pick_piece(matching_pos)
+                else:
+                    print(f"\n✗ Position '{user_input}' not found!")
+                    print("   Available positions:")
+                    for pos in positions:
+                        print(f"     - {pos}")
+                    continue
+            
+            # Display response
+            if response.get('status') == 'success':
+                print(f"✓ Successfully moved to position!")
+                if 'position' in response:
+                    print(f"  Position: {response.get('position')}")
+                if 'orientation' in response:
+                    print(f"  Orientation: {response.get('orientation')}")
+            else:
+                print(f"✗ Failed: {response.get('message', 'Unknown error')}")
+        
+        print("\n" + "="*60)
+        print("Interactive session ended")
+        print("="*60)
+        
+    except KeyboardInterrupt:
+        print("\n\nInterrupted by user. Exiting...")
+    except Exception as e:
+        print(f"\nError during interactive mode: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        client.disconnect()
+
+
 def interactive_mode():
     """
     Interactive mode for manually sending commands.
@@ -695,10 +808,11 @@ if __name__ == "__main__":
     print("1 - Run pick and place example (with named positions)")
     print("2 - Test place by location name")
     print("3 - Test all positions (visit each position)")
-    print("4 - Interactive mode")
+    print("4 - Interactive mode (manual commands)")
+    print("5 - Interactive position test (type position names)")
     print("=" * 50)
     
-    choice = input("Select mode (1-4): ").strip()
+    choice = input("Select mode (1-5): ").strip()
     
     if choice == '1':
         example_pick_and_place()
@@ -708,5 +822,7 @@ if __name__ == "__main__":
         test_all_positions()
     elif choice == '4':
         interactive_mode()
+    elif choice == '5':
+        interactive_position_test()
     else:
         print("Invalid choice")
