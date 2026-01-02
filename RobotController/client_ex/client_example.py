@@ -375,6 +375,188 @@ def test_place_by_name():
         client.disconnect()
 
 
+def test_all_positions():
+    """
+    Test visiting selected positions including home pose.
+    """
+    print("\n" + "="*60)
+    print("Test: Visit Selected Positions")
+    print("="*60)
+    
+    # Get server IP
+    SERVER_IP = input("Enter server IP address (default: 192.168.137.1): ") or "192.168.137.1"
+    
+    # Create client and connect
+    client = RobotClient(SERVER_IP)
+    
+    if not client.connect():
+        print("Failed to connect to server!")
+        return
+    
+    try:
+        # Get all available positions
+        print("\n1. Getting all available positions...")
+        response = client.list_positions()
+        
+        if response.get('status') != 'success':
+            print("Failed to get positions list!")
+            return
+        
+        positions = response.get('positions', [])
+        print(f"   Found {len(positions)} positions")
+        
+        # Display positions with numbers
+        print("\n" + "="*60)
+        print("Available Positions:")
+        print("="*60)
+        for i, pos in enumerate(positions, 1):
+            print(f"  {i}. {pos}")
+        print("="*60)
+        
+        # Get user selection
+        selection_input = input("\nEnter position numbers to test (e.g., '1 2 3' or '1,2,3' or 'all'): ").strip()
+        
+        # Parse selection
+        if selection_input.lower() == 'all':
+            selected_indices = list(range(len(positions)))
+        else:
+            # Parse comma or space separated numbers
+            selection_input = selection_input.replace(',', ' ')
+            try:
+                selected_numbers = [int(x) for x in selection_input.split() if x.strip()]
+                selected_indices = [n - 1 for n in selected_numbers if 1 <= n <= len(positions)]
+                
+                if not selected_indices:
+                    print("No valid positions selected!")
+                    return
+            except ValueError:
+                print("Invalid input! Please enter numbers separated by spaces or commas.")
+                return
+        
+        selected_positions = [positions[i] for i in selected_indices]
+        print(f"\nSelected positions to test: {selected_positions}")
+        
+        # Test home position first
+        print("\n2. Testing move to home pose...")
+        response = client.move_home()
+        print(f"   Response: {response}")
+        
+        if response.get('status') == 'success':
+            print("   ✓ Successfully moved to home pose!")
+        else:
+            print(f"   ✗ Failed to move home: {response.get('message')}")
+        
+        # Wait
+        print("\n3. Waiting 2 seconds...")
+        client.wait(2.0)
+        
+        # Test each selected position
+        for i, position_name in enumerate(selected_positions, 1):
+            if position_name.lower() == 'home pose':
+                print(f"\n{i+3}. Skipping '{position_name}' (already at home)")
+                continue
+            
+            print(f"\n{i+3}. Testing position '{position_name}'...")
+            response = client.place_piece(position_name)
+            print(f"   Response: {response}")
+            
+            if response.get('status') == 'success':
+                print(f"   ✓ Successfully moved to {position_name}!")
+                print(f"   Position: {response.get('position')}")
+                print(f"   Orientation: {response.get('orientation')}")
+            else:
+                print(f"   ✗ Failed: {response.get('message')}")
+            
+            # Wait between positions
+            print(f"   Waiting 2 seconds before next position...")
+            client.wait(2.0)
+        
+        # Return to home
+        print("\nReturning to home position...")
+        client.move_home()
+        
+        print("\n" + "="*60)
+        print("✓ Selected positions test completed!")
+        print("="*60)
+        
+    except Exception as e:
+        print(f"\nError during test: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    finally:
+        client.disconnect()
+
+
+def test_place_by_name_old():
+    """
+    Test placing at named locations (bad bin, good bin).
+    """
+    print("\n" + "="*60)
+    print("Test: Place at Named Locations")
+    print("="*60)
+    
+    # Get server IP
+    SERVER_IP = input("Enter server IP address (default: 192.168.137.1): ") or "192.168.137.1"
+    
+    # Create client and connect
+    client = RobotClient(SERVER_IP)
+    
+    if not client.connect():
+        print("Failed to connect to server!")
+        return
+    
+    try:
+        # List available positions first
+        print("\n1. Getting available positions...")
+        response = client.list_positions()
+        if response.get('status') == 'success':
+            positions = response.get('positions', [])
+            print(f"   Available positions: {positions}")
+            
+            # Filter for bin locations
+            bins = [p for p in positions if 'bin' in p.lower()]
+            print(f"   Available bins: {bins}")
+        
+        # Test placing at bad bin
+        print("\n2. Testing place at 'bad bin'...")
+        response = client.place_piece('bad bin')
+        print(f"   Response: {response}")
+        
+        if response.get('status') == 'success':
+            print("   ✓ Successfully placed at bad bin!")
+            print(f"   Position used: {response.get('position')}")
+            print(f"   Orientation used: {response.get('orientation')}")
+        else:
+            print(f"   ✗ Failed: {response.get('message')}")
+        
+        # Wait between movements
+        print("\n3. Waiting 2 seconds...")
+        client.wait(2.0)
+        
+        # Test placing at good bin
+        print("\n4. Testing place at 'good bin'...")
+        response = client.place_piece('good bin')
+        print(f"   Response: {response}")
+        
+        if response.get('status') == 'success':
+            print("   ✓ Successfully placed at good bin!")
+            print(f"   Position used: {response.get('position')}")
+            print(f"   Orientation used: {response.get('orientation')}")
+        else:
+            print(f"   ✗ Failed: {response.get('message')}")
+        
+        print("\n✓ Place test completed!")
+        
+    except Exception as e:
+        print(f"\nError during test: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    finally:
+        client.disconnect()
+
+
 def example_pick_and_place_old_manual():
     """
     Example: Pick and place operation.
@@ -512,16 +694,19 @@ if __name__ == "__main__":
     print("=" * 50)
     print("1 - Run pick and place example (with named positions)")
     print("2 - Test place by location name")
-    print("3 - Interactive mode")
+    print("3 - Test all positions (visit each position)")
+    print("4 - Interactive mode")
     print("=" * 50)
     
-    choice = input("Select mode (1, 2, or 3): ").strip()
+    choice = input("Select mode (1-4): ").strip()
     
     if choice == '1':
         example_pick_and_place()
     elif choice == '2':
         test_place_by_name()
     elif choice == '3':
+        test_all_positions()
+    elif choice == '4':
         interactive_mode()
     else:
         print("Invalid choice")

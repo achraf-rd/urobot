@@ -6,6 +6,7 @@ from robodk import robolink, robomath
 from robodk.robolink import Robolink, Item
 import time
 from gripper_controller import GripperController
+from positions_manager import PositionsManager
 
 
 class RobotController:
@@ -40,6 +41,9 @@ class RobotController:
             raise Exception("Robot not found. Please ensure RoboDK is running with a robot loaded.")
         
         print(f"Connected to robot: {self.robot.Name()}")
+        
+        # Initialize positions manager
+        self.positions_manager = PositionsManager()
         
         # Connect to real robot if requested
         if connect_real_robot:
@@ -122,16 +126,33 @@ class RobotController:
 
     def move_to_home(self):
         """
-        Move the robot to its home position.
+        Move the robot to its home position from positions file.
         
         Returns:
             bool: True if successful, False otherwise.
         """
         try:
-            print("Moving to home position...")
-            self.robot.MoveJ(self.home_joints)
-            self.robot.WaitMove()
-            print("Reached home position.")
+            # Get home position from positions file
+            home_data = self.positions_manager.get_position('home pose')
+            
+            if home_data:
+                # Use position from file
+                position = home_data['position']
+                orientation = home_data['orientation']
+                pose = position + orientation
+                target_pose = robomath.TxyzRxyz_2_Pose(pose)
+                
+                print(f"Moving to home position from file: {position}")
+                self.robot.MoveJ(target_pose)
+                self.robot.WaitMove()
+                print("Reached home position.")
+            else:
+                # Fallback to stored joints if home not in file
+                print("Home position not found in file, using stored joints...")
+                self.robot.MoveJ(self.home_joints)
+                self.robot.WaitMove()
+                print("Reached home position.")
+            
             return True
         except Exception as e:
             print(f"Error moving to home: {e}")
