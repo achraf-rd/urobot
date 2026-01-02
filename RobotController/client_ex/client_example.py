@@ -145,7 +145,7 @@ def example_pick_and_place():
     Example: Pick and place operation.
     """
     # Replace with your server's IP address
-    SERVER_IP = "192.168.1.100"  # Change this to your server's IP
+    SERVER_IP = "0.0.0.0"  # Change this to your server's IP
     
     # Create client and connect
     client = RobotClient(SERVER_IP)
@@ -239,12 +239,11 @@ def interactive_mode():
                 response = client.move_home()
                 print(f"Response: {response}")
             elif choice == '2':
-                x = float(input("Enter X position (mm): "))
-                y = float(input("Enter Y position (mm): "))
-                z = float(input("Enter Z position (mm): "))
-                rx = float(input("Enter RX orientation (deg): "))
-                ry = float(input("Enter RY orientation (deg): "))
-                rz = float(input("Enter RZ orientation (deg): "))
+                # Enter values like: 5.667981, 7.786667, 170.027672, -126.455691, 126.455690, -1.803552
+                values = input("Enter position and orientation [x, y, z, rx, ry, rz]: ").strip()
+                values = [float(v.strip()) for v in values.replace('[', '').replace(']', '').split(',')]
+                x, y, z, rx, ry, rz = values
+                print(f"Picking at position: {[x, y, z]} with orientation: {[rx, ry, rz]}")
                 response = client.pick_object([x, y, z], [rx, ry, rz])
                 print(f"Response: {response}")
             elif choice == '3':
