@@ -44,24 +44,26 @@ def main():
         mode = input("\nConnect to REAL robot or SIMULATION? (r/s, default: s): ").strip().lower()
         connect_real = (mode == 'r')
         
+        robot_ip = None
         if connect_real:
             print("\nIMPORTANT: Make sure you have connected to the robot in RoboDK first!")
             print("  1. Right-click on the robot in RoboDK")
             print("  2. Select 'Connect to robot...'")
             print("  3. Choose 'Universal Robots' driver")
             print("  4. Enter robot IP and click 'Connect'")
+            
+            # Ask for robot IP for gripper control
+            robot_ip = input("\nEnter robot IP address (e.g., 192.168.0.10): ").strip()
+            if not robot_ip:
+                print("Warning: No robot IP provided, gripper will not be available")
+                robot_ip = None
+            
             input("\nPress Enter once robot is connected in RoboDK...")
         
-        # Prompt for gripper usage
-        use_gripper = input("\nUse OnRobot RG2 gripper? (y/n, default: y): ").strip().lower()
-        if not use_gripper or use_gripper == 'y':
-            use_gripper = True
-        else:
-            use_gripper = False
-        
-        # Initialize the robot controller
+        # Initialize the robot controller with gripper enabled by default
         robot = RobotController(
-            use_gripper=use_gripper,
+            robot_ip=robot_ip,
+            use_gripper=True,
             connect_real_robot=connect_real
         )
         
