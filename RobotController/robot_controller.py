@@ -206,10 +206,10 @@ class RobotController:
             approach_pose = position + orientation
             approach_target = robomath.TxyzRxyz_2_Pose(approach_pose)
             
-            # Calculate pick position (50mm down on Z)
-            pick_pose = approach_pose.copy()
-            pick_pose[2] -= 50  # 50mm down from approach
-            pick_target = robomath.TxyzRxyz_2_Pose(pick_pose)
+            # # Calculate pick position (50mm down on Z)
+            # pick_pose = approach_pose.copy()
+            # pick_pose[2] -= 50  # 50mm down from approach
+            # pick_target = robomath.TxyzRxyz_2_Pose(pick_pose)
             
             print(f"Picking object at approach position: {position}")
             
