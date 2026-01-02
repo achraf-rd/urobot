@@ -16,14 +16,17 @@ class RobotController:
     moving to home position, moving to specific poses, and pick-and-place operations.
     """
     
-    def __init__(self, robot_name=None, robot_ip=None, use_gripper=True):
+    def __init__(self, robot_name=None, robot_ip=None, use_gripper=True, speed=10, acceleration=10, connect_real_robot=False):
         """
         Initialize the RobotController.
         
         Args:
             robot_name (str, optional): Name of the robot in RoboDK. If None, uses the first available robot.
-            robot_ip (str, optional): IP address of the UR robot (deprecated, kept for compatibility).
+            robot_ip (str, optional): IP address of the UR robot for real connection.
             use_gripper (bool): Whether to use the gripper. Default is True.
+            speed (int): Robot speed percentage (1-100).
+            acceleration (int): Robot acceleration percentage (1-100).
+            connect_real_robot (bool): If True, connect to real robot instead of simulation.
         """
         self.rdk = Robolink()
         
@@ -38,9 +41,35 @@ class RobotController:
         
         print(f"Connected to robot: {self.robot.Name()}")
         
+        # Connect to real robot if requested
+        if connect_real_robot:
+            if robot_ip:
+                print(f"\nConnecting to real robot at {robot_ip}...")
+                self.robot.setConnectionParams(robot_ip, 30003, '/', 'anonymous', '')
+                success = self.robot.Connect()
+                if success:
+                    print("✓ Successfully connected to real robot!")
+                    # Set robot to online mode
+                    self.robot.setRunMode(robolink.RUNMODE_RUN_ROBOT)
+                else:
+                    print("✗ Failed to connect to real robot. Check:")
+                    print("  1. Robot IP address is correct")
+                    print("  2. Robot is powered on")
+                    print("  3. Network connection is working")
+                    print("  4. Robot is not in emergency stop")
+                    raise Exception("Failed to connect to real robot")
+            else:
+                print("Warning: connect_real_robot=True but no robot_ip provided")
+                print("Continuing in simulation mode...")
+        else:
+            print("Running in SIMULATION mode")
+            self.robot.setRunMode(robolink.RUNMODE_SIMULATE)
+        
         # Store home position (current position on initialization)
         self.home_joints = self.robot.Joints()
-        
+       
+        self.set_speed(speed)
+        self.set_acceleration(acceleration)
         # Initialize gripper if requested
         self.gripper = None
         if use_gripper:
@@ -55,6 +84,42 @@ class RobotController:
                 print(f"Warning: Failed to initialize gripper: {e}")
                 self.gripper = None
     
+    def set_speed(self, speed_percent):
+        """
+        Set robot speed.
+        
+        Args:
+            speed_percent: Speed as percentage (0-100)
+        """
+        if not 0 <= speed_percent <= 100:
+            raise ValueError("Speed must be between 0 and 100")
+        
+        self.robot.setSpeed(speed_percent)
+        print(f"Speed set to {speed_percent}%")
+    
+    def set_acceleration(self, accel_percent):
+        """
+        Set robot acceleration.
+        
+        Args:
+            accel_percent: Acceleration as percentage (0-100)
+        """
+        if not 0 <= accel_percent <= 100:
+            raise ValueError("Acceleration must be between 0 and 100")
+        
+        self.robot.setAcceleration(accel_percent)
+        print(f"Acceleration set to {accel_percent}%")
+    
+    def set_rounding(self, radius_mm):
+        """
+        Set corner rounding radius.
+        
+        Args:
+            radius_mm: Rounding radius in mm (0 = sharp corners)
+        """
+        self.robot.setRounding(radius_mm)
+        print(f"Rounding set to {radius_mm}mm")
+
     def move_to_home(self):
         """
         Move the robot to its home position.
@@ -103,9 +168,10 @@ class RobotController:
     def pick_object(self, position, orientation):
         """
         Execute a pick operation at the specified position and orientation.
+        The received pose is the approach position (above the object).
         
         Args:
-            position (list): [x, y, z] coordinates in mm
+            position (list): [x, y, z] coordinates in mm (approach position)
             orientation (list): [rx, ry, rz] orientation angles in degrees
         
         Returns:
@@ -115,25 +181,31 @@ class RobotController:
             if len(position) != 3 or len(orientation) != 3:
                 raise ValueError("Position and orientation must contain 3 elements each")
             
-            pose = position + orientation
-            target_pose = robomath.TxyzRxyz_2_Pose(pose)
-            
-            # Move above the object (approach)
-            approach_pose = pose.copy()
-            approach_pose[2] += 50  # 50mm above the target
+            # Received pose is the approach position
+            approach_pose = position + orientation
             approach_target = robomath.TxyzRxyz_2_Pose(approach_pose)
             
-            print(f"Picking object at position: {position}")
+            # Calculate pick position (50mm down on Z)
+            pick_pose = approach_pose.copy()
+            pick_pose[2] -= 50  # 50mm down from approach
+            pick_target = robomath.TxyzRxyz_2_Pose(pick_pose)
+            
+            print(f"Picking object at approach position: {position}")
             
             # Move to approach position
             self.robot.MoveJ(approach_target)
             self.robot.WaitMove()
             
+            # Open gripper before approaching object
+            print("Opening gripper...")
+            self._activate_gripper(False)
+            time.sleep(0.5)
+            
             # Move down to pick position
-            self.robot.MoveL(target_pose)
+            self.robot.MoveL(pick_target)
             self.robot.WaitMove()
             
-            # Simulate gripper closing
+            # Close gripper to grip object
             print("Closing gripper...")
             self._activate_gripper(True)
             time.sleep(0.5)
@@ -151,9 +223,10 @@ class RobotController:
     def place_object(self, position, orientation):
         """
         Execute a place operation at the specified position and orientation.
+        Moves to the received pose and opens the gripper to release the object.
         
         Args:
-            position (list): [x, y, z] coordinates in mm
+            position (list): [x, y, z] coordinates in mm (place position)
             orientation (list): [rx, ry, rz] orientation angles in degrees
         
         Returns:
@@ -166,29 +239,16 @@ class RobotController:
             pose = position + orientation
             target_pose = robomath.TxyzRxyz_2_Pose(pose)
             
-            # Move above the target (approach)
-            approach_pose = pose.copy()
-            approach_pose[2] += 50  # 50mm above the target
-            approach_target = robomath.TxyzRxyz_2_Pose(approach_pose)
-            
             print(f"Placing object at position: {position}")
             
-            # Move to approach position
-            self.robot.MoveJ(approach_target)
+            # Move to place position
+            self.robot.MoveJ(target_pose)
             self.robot.WaitMove()
             
-            # Move down to place position
-            self.robot.MoveL(target_pose)
-            self.robot.WaitMove()
-            
-            # Simulate gripper opening
+            # Open gripper to release object
             print("Opening gripper...")
             self._activate_gripper(False)
             time.sleep(0.5)
-            
-            # Move back to approach position
-            self.robot.MoveL(approach_target)
-            self.robot.WaitMove()
             
             print("Place operation completed.")
             return True
