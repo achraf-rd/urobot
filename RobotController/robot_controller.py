@@ -49,8 +49,8 @@ class RobotController:
                 success = self.robot.Connect()
                 if success:
                     print("✓ Successfully connected to real robot!")
-                    # Set robot to online mode
-                    self.robot.setRunMode(robolink.RUNMODE_RUN_ROBOT)
+                    # Set RoboDK to run on real robot (not simulation)
+                    self.rdk.setRunMode(robolink.RUNMODE_RUN_ROBOT)
                 else:
                     print("✗ Failed to connect to real robot. Check:")
                     print("  1. Robot IP address is correct")
@@ -61,9 +61,10 @@ class RobotController:
             else:
                 print("Warning: connect_real_robot=True but no robot_ip provided")
                 print("Continuing in simulation mode...")
+                self.rdk.setRunMode(robolink.RUNMODE_SIMULATE)
         else:
             print("Running in SIMULATION mode")
-            self.robot.setRunMode(robolink.RUNMODE_SIMULATE)
+            self.rdk.setRunMode(robolink.RUNMODE_SIMULATE)
         
         # Store home position (current position on initialization)
         self.home_joints = self.robot.Joints()
