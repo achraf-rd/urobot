@@ -217,23 +217,23 @@ class RobotController:
             self.robot.MoveJ(approach_target)
             self.robot.WaitMove()
             
-            # Open gripper before approaching object
-            print("Opening gripper...")
-            self._activate_gripper(False)
-            time.sleep(0.5)
+            # # Open gripper before approaching object
+            # print("Opening gripper...")
+            # self._activate_gripper(False)
+            # time.sleep(0.5)
             
-            # Move down to pick position
-            self.robot.MoveL(pick_target)
-            self.robot.WaitMove()
+            # # Move down to pick position
+            # self.robot.MoveL(pick_target)
+            # self.robot.WaitMove()
             
-            # Close gripper to grip object
-            print("Closing gripper...")
-            self._activate_gripper(True)
-            time.sleep(0.5)
+            # # Close gripper to grip object
+            # print("Closing gripper...")
+            # self._activate_gripper(True)
+            # time.sleep(0.5)
             
-            # Move back to approach position
-            self.robot.MoveL(approach_target)
-            self.robot.WaitMove()
+            # # Move back to approach position
+            # self.robot.MoveL(approach_target)
+            # self.robot.WaitMove()
             
             print("Pick operation completed.")
             return True
@@ -266,10 +266,10 @@ class RobotController:
             self.robot.MoveJ(target_pose)
             self.robot.WaitMove()
             
-            # Open gripper to release object
-            print("Opening gripper...")
-            self._activate_gripper(False)
-            time.sleep(0.5)
+            # # Open gripper to release object
+            # print("Opening gripper...")
+            # self._activate_gripper(False)
+            # time.sleep(0.5)
             
             print("Place operation completed.")
             return True
