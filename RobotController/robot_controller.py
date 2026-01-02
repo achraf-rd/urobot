@@ -232,13 +232,9 @@ class RobotController:
             self.robot.WaitMove()
             
             # Step 2: Open gripper
-            if self.gripper and self.gripper.is_connected():
-                print("  → Opening gripper...")
-                self.gripper.open()
-                self.gripper.wait_completion(timeout=5)
-            else:
-                print("  → Opening gripper (simulated)...")
-                time.sleep(1)
+            print("  → Opening gripper...")
+            self.gripper.open()
+            self.gripper.wait_completion(timeout=5)
             
             # Step 3: Move down to pick position
             print(f"  → Moving down {pick_offset_mm}mm to grasp object...")
@@ -246,13 +242,9 @@ class RobotController:
             self.robot.WaitMove()
             
             # Step 4: Close gripper to grip object
-            if self.gripper and self.gripper.is_connected():
-                print("  → Closing gripper...")
-                self.gripper.close()
-                self.gripper.wait_completion(timeout=5)
-            else:
-                print("  → Closing gripper (simulated)...")
-                time.sleep(1)
+            print("  → Closing gripper...")
+            self.gripper.close()
+            self.gripper.wait_completion(timeout=5)
             
             # Step 5: Move back to approach position
             print("  → Moving back to approach position...")
@@ -295,13 +287,9 @@ class RobotController:
             self.robot.WaitMove()
             
             # Step 2: Open gripper to release object
-            if self.gripper and self.gripper.is_connected():
-                print("  → Opening gripper to release object...")
-                self.gripper.open()
-                self.gripper.wait_completion(timeout=5)
-            else:
-                print("  → Opening gripper (simulated)...")
-                time.sleep(1)
+            print("  → Opening gripper to release object...")
+            self.gripper.open()
+            self.gripper.wait_completion(timeout=5)
             
             print("✓ Place operation completed.")
             return True
