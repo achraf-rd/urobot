@@ -62,45 +62,61 @@ class DashboardGripper:
         """Disconnect."""
         self.connected = False
     
-    def open(self, program_name="open_gripper.urp"):
+    def open(self, program_name="open-gripper.urp"):
         """Open the gripper by loading and running a program."""
         if not self.connected:
+            print("ERROR: Not connected to Dashboard Server")
             return False
         
         # Load program
+        print(f"Loading program: {program_name}")
         response = self._send_command(f"load {program_name}")
-        if "ERROR" in response and "Loading" not in response:
+        print(f"Load response: {response}")
+        
+        if "ERROR" in response and "Loading" not in response and "File opened" not in response:
             print(f"Failed to load {program_name}: {response}")
             return False
         
-        time.sleep(0.5)
+        time.sleep(1)
         
         # Play program
+        print("Starting program...")
         response = self._send_command("play")
-        if "Starting" in response:
-            return True
+        print(f"Play response: {response}")
         
-        return False
+        if "Starting" in response or "STARTING" in response:
+            return True
+        else:
+            print(f"Failed to start program: {response}")
+            return False
     
-    def close(self, program_name="close_gripper.urp"):
+    def close(self, program_name="close-gripper.urp"):
         """Close the gripper by loading and running a program."""
         if not self.connected:
+            print("ERROR: Not connected to Dashboard Server")
             return False
         
         # Load program
+        print(f"Loading program: {program_name}")
         response = self._send_command(f"load {program_name}")
-        if "ERROR" in response and "Loading" not in response:
+        print(f"Load response: {response}")
+        
+        if "ERROR" in response and "Loading" not in response and "File opened" not in response:
             print(f"Failed to load {program_name}: {response}")
             return False
         
-        time.sleep(0.5)
+        time.sleep(1)
         
         # Play program
+        print("Starting program...")
         response = self._send_command("play")
-        if "Starting" in response:
-            return True
+        print(f"Play response: {response}")
         
-        return False
+        if "Starting" in response or "STARTING" in response:
+            return True
+        else:
+            print(f"Failed to start program: {response}")
+            return False
     
     def wait_completion(self, timeout=30):
         """Wait for program to complete."""

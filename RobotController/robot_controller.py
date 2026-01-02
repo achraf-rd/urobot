@@ -191,7 +191,7 @@ class RobotController:
             print(f"Error moving to pose: {e}")
             return False
     
-    def pick_object(self, position, orientation, pick_offset_mm=0.13):
+    def pick_object(self, position, orientation, pick_offset_mm=40):
         """
         Execute a pick operation at the specified position and orientation.
         The received pose is the approach position (above the object).
@@ -206,7 +206,7 @@ class RobotController:
         Args:
             position (list): [x, y, z] coordinates in mm (approach position)
             orientation (list): [rx, ry, rz] orientation angles in degrees
-            pick_offset_mm (float): Distance to move down to grasp object (default: 50mm)
+            pick_offset_mm (float): Distance to move down to grasp object (default: 40mm)
         
         Returns:
             bool: True if successful, False otherwise.
