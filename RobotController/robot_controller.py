@@ -78,20 +78,19 @@ class RobotController:
         # Initialize gripper if requested
         self.gripper = None
         self.robot_ip = robot_ip
-        if use_gripper and robot_ip:
+        if use_gripper:
             try:
-                self.gripper = DashboardGripper(robot_ip=robot_ip)
+                self.gripper = DashboardGripper(robot_item=self.robot, robot_ip=robot_ip)
                 if self.gripper.connect():
-                    print("Gripper initialized successfully via Dashboard Server")
+                    print("Gripper initialized successfully via RoboDK API")
                 else:
                     print("Warning: Gripper connection failed, continuing without gripper")
                     self.gripper = None
             except Exception as e:
                 print(f"Warning: Failed to initialize gripper: {e}")
                 self.gripper = None
-        elif use_gripper and not robot_ip:
-            print("Warning: Robot IP not provided, gripper cannot be initialized")
-            print("  Provide robot_ip parameter to enable gripper control")
+        else:
+            print("Gripper disabled")
     
     def set_speed(self, speed_percent):
         """
@@ -234,7 +233,10 @@ class RobotController:
             # Step 2: Open gripper
             print("  → Opening gripper...")
             self.gripper.open()
-            self.gripper.wait_completion(timeout=5)
+            # Wait for gripper program to complete
+            print("  → Waiting for gripper to open...")
+            self.gripper.wait_completion(timeout=10)
+            time.sleep(1)  # Extra delay to ensure robot is ready
             
             # Step 3: Move down to pick position
             print(f"  → Moving down {pick_offset_mm}mm to grasp object...")
@@ -244,7 +246,10 @@ class RobotController:
             # Step 4: Close gripper to grip object
             print("  → Closing gripper...")
             self.gripper.close()
-            self.gripper.wait_completion(timeout=5)
+            # Wait for gripper program to complete
+            print("  → Waiting for gripper to close...")
+            self.gripper.wait_completion(timeout=10)
+            time.sleep(1)  # Extra delay to ensure robot is ready
             
             # Step 5: Move back to approach position
             print("  → Moving back to approach position...")
@@ -289,7 +294,10 @@ class RobotController:
             # Step 2: Open gripper to release object
             print("  → Opening gripper to release object...")
             self.gripper.open()
-            self.gripper.wait_completion(timeout=5)
+            # Wait for gripper program to complete
+            print("  → Waiting for gripper to open...")
+            self.gripper.wait_completion(timeout=10)
+            time.sleep(1)  # Extra delay to ensure robot is ready
             
             print("✓ Place operation completed.")
             return True
