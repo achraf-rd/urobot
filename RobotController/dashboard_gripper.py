@@ -15,18 +15,29 @@ class DashboardGripper:
         Args:
             robot_item: RoboDK robot item object
             robot_ip (str): IP address of the UR robot (required for Dashboard Server)
+        
+        Note: No Dashboard connection is made during initialization to avoid
+        interfering with RoboDK connection. Dashboard connection happens only
+        when open() or close() is called.
         """
         self.robot = robot_item
         self.robot_ip = robot_ip if robot_ip else "192.168.1.10"
         self.dashboard_port = 29999
         self.connected = False
         self.socket_timeout = 5
+        self.dashboard_tested = False  # Track if we've tested Dashboard connection
     
     def connect(self):
-        """Test connection to robot."""
+        """
+        Test connection to robot (RoboDK only, no Dashboard connection).
+        
+        This only checks if the robot item is valid in RoboDK.
+        Dashboard connection will be made lazily when open()/close() is called.
+        """
         try:
             if self.robot and self.robot.Valid():
                 self.connected = True
+                print("Gripper helper initialized (Dashboard will connect on first use)")
                 return True
             return False
         except:
@@ -41,7 +52,16 @@ class DashboardGripper:
         self.connected = False
     
     def _send_dashboard_command(self, command):
-        """Send command to Dashboard Server via TCP."""
+        """
+        Send command to Dashboard Server via TCP.
+        
+        This is only called when actually needed (during open/close operations).
+        """
+        # Log first Dashboard connection
+        if not self.dashboard_tested:
+            print(f"  → First Dashboard connection to {self.robot_ip}:{self.dashboard_port}")
+            self.dashboard_tested = True
+        
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(self.socket_timeout)

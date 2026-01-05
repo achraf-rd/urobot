@@ -389,6 +389,10 @@ class RobotController:
         Returns:
             list: Current pose as [x, y, z, rx, ry, rz]
         """
+        # Wait for robot to be ready (not busy)
+        self.robot.WaitMove()
+        time.sleep(0.1)  # Small delay to ensure robot is fully ready
+        
         pose_matrix = self.robot.Pose()
         pose = robomath.Pose_2_TxyzRxyz(pose_matrix)
         return pose
@@ -400,6 +404,10 @@ class RobotController:
         Returns:
             list: Current joint angles in degrees.
         """
+        # Wait for robot to be ready (not busy)
+        self.robot.WaitMove()
+        time.sleep(0.1)  # Small delay to ensure robot is fully ready
+        
         return self.robot.Joints().list()
     
     def disconnect(self):

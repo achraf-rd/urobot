@@ -18,7 +18,7 @@ from client_example import RobotClient
 import time
 
 
-def test_all_pick_and_place(server_ip="192.168.137.1", test_mode="simulation"):
+def test_all_pick_and_place(server_ip="192.168.1.10", test_mode="simulation"):
     """
     Test pick and place for all piece positions.
     
@@ -179,7 +179,7 @@ def test_all_pick_and_place(server_ip="192.168.137.1", test_mode="simulation"):
         client.disconnect()
 
 
-def test_single_pick_place_cycle(server_ip="192.168.137.1"):
+def test_single_pick_place_cycle(server_ip="192.168.1.10"):
     """
     Test a single pick and place cycle for quick verification.
     
@@ -235,7 +235,7 @@ def test_single_pick_place_cycle(server_ip="192.168.137.1"):
         client.disconnect()
 
 
-def test_specific_positions(server_ip="192.168.137.1", pieces=None, bins=None):
+def test_specific_positions(server_ip="192.168.1.10", pieces=None, bins=None):
     """
     Test specific pieces and bins.
     
@@ -313,7 +313,7 @@ def main():
     choice = input("\nEnter choice (1-4): ").strip()
     
     # Get server IP
-    default_ip = "localhost"
+    default_ip = "192.168.1.10"
     server_ip = input(f"\nEnter server IP (default: {default_ip}): ").strip()
     if not server_ip:
         server_ip = default_ip
