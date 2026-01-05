@@ -127,6 +127,33 @@ class RobotController:
         """
         self.robot.setRounding(radius_mm)
         print(f"Rounding set to {radius_mm}mm")
+    
+    def _reconnect_if_needed(self):
+        """Check RoboDK connection and reconnect if needed after Dashboard commands."""
+        try:
+            state = self.robot.ConnectedState()
+            
+            if state != robolink.ROBOTCOM_READY:
+                print(f"     RoboDK disconnected (state: {state}), reconnecting...")
+                self.robot.Connect()
+                time.sleep(2)
+                
+                new_state = self.robot.ConnectedState()
+                if new_state == robolink.ROBOTCOM_READY:
+                    print("     \u2713 RoboDK reconnected successfully")
+                else:
+                    print(f"     \u26a0 Connection state: {new_state}")
+            else:
+                print("     \u2713 RoboDK connection OK")
+                
+        except Exception as e:
+            print(f"     \u26a0 Reconnection check: {e}")
+            try:
+                self.robot.Connect()
+                time.sleep(2)
+                print("     \u2713 RoboDK reconnected")
+            except:
+                print("     \u2717 Failed to reconnect")
 
     def move_to_home(self):
         """
@@ -236,6 +263,9 @@ class RobotController:
             # Wait for gripper program to complete
             print("  → Waiting for gripper to open...")
             self.gripper.wait_completion(timeout=10)
+            # Ensure RoboDK reconnection after Dashboard command
+            print("  → Verifying RoboDK connection...")
+            self._reconnect_if_needed()
             time.sleep(1)  # Extra delay to ensure robot is ready
             
             # Step 3: Move down to pick position
@@ -249,6 +279,9 @@ class RobotController:
             # Wait for gripper program to complete
             print("  → Waiting for gripper to close...")
             self.gripper.wait_completion(timeout=10)
+            # Ensure RoboDK reconnection after Dashboard command
+            print("  → Verifying RoboDK connection...")
+            self._reconnect_if_needed()
             time.sleep(1)  # Extra delay to ensure robot is ready
             
             # Step 5: Move back to approach position
@@ -297,6 +330,9 @@ class RobotController:
             # Wait for gripper program to complete
             print("  → Waiting for gripper to open...")
             self.gripper.wait_completion(timeout=10)
+            # Ensure RoboDK reconnection after Dashboard command
+            print("  → Verifying RoboDK connection...")
+            self._reconnect_if_needed()
             time.sleep(1)  # Extra delay to ensure robot is ready
             
             print("✓ Place operation completed.")
