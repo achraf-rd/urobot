@@ -1,53 +1,382 @@
 """
-Gripper Diagnostic Test - Check why gripper isn't working
+Method 3: Direct TCP Communication to Robot
+============================================
+This method sends URScript commands directly to the robot via TCP socket
+on port 30002 (real-time interface) or port 30001 (primary interface).
+
+Approaches:
+1. Primary Interface (port 30001) - Script execution
+2. Real-time Interface (port 30002) - URScript commands
+3. Dashboard Server (port 29999) - Robot control commands
 """
-from robodk import robolink
+import socket
 import time
+import struct
 
-print("="*60)
-print("GRIPPER DIAGNOSTIC TEST")
-print("="*60)
 
-# Connect to RoboDK
-print("\n[1] Connecting to RoboDK...")
-rdk = robolink.Robolink()
-print("    ✓ Connected")
+# ============================================================================
+# TCP Interface Classes
+# ============================================================================
 
-# Get robot
-print("\n[2] Getting robot...")
-robot = rdk.Item('', robolink.ITEM_TYPE_ROBOT)
-if not robot.Valid():
-    print("    ✗ ERROR: No robot found!")
-    exit(1)
-print(f"    ✓ Robot found: {robot.Name()}")
+class URPrimaryInterface:
+    """Primary interface for URScript execution (port 30001)."""
+    
+    def __init__(self, robot_ip, port=30001):
+        """Initialize primary interface."""
+        self.robot_ip = robot_ip
+        self.port = port
+        self.sock = None
+    
+    def connect(self):
+        """Connect to robot."""
+        try:
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.settimeout(5)
+            self.sock.connect((self.robot_ip, self.port))
+            print(f"  ✓ Connected to {self.robot_ip}:{self.port}")
+            return True
+        except Exception as e:
+            print(f"  ✗ Connection failed: {e}")
+            return False
+    
+    def send_script(self, script):
+        """Send URScript to robot."""
+        try:
+            if not self.sock:
+                if not self.connect():
+                    return False
+            
+            script_with_end = script + "\n"
+            self.sock.send(script_with_end.encode('utf-8'))
+            print(f"  ✓ Script sent: {script}")
+            return True
+        except Exception as e:
+            print(f"  ✗ Error sending script: {e}")
+            return False
+    
+    def disconnect(self):
+        """Disconnect from robot."""
+        if self.sock:
+            self.sock.close()
+            self.sock = None
 
-# Check current run mode
-print("\n[3] Checking RoboDK run mode...")
-current_mode = rdk.RunMode()
-mode_names = {
-    1: "SIMULATE (not connected to real robot)",
-    2: "QUICKVALIDATE", 
-    3: "MAKE_ROBOTPROG",
-    4: "RUN_ROBOT (connected to real robot)"
-}
-print(f"    Current mode: {current_mode} - {mode_names.get(current_mode, 'Unknown')}")
 
-if current_mode != 4:
-    print("\n    ⚠ WARNING: Not in RUN_ROBOT mode!")
-    print("    The gripper commands won't reach the real robot.")
+class URRealtimeInterface:
+    """Real-time interface for URScript (port 30002)."""
+    
+    def __init__(self, robot_ip, port=30002):
+        """Initialize real-time interface."""
+        self.robot_ip = robot_ip
+        self.port = port
+        self.sock = None
+    
+    def connect(self):
+        """Connect to robot."""
+        try:
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.settimeout(5)
+            self.sock.connect((self.robot_ip, self.port))
+            print(f"  ✓ Connected to {self.robot_ip}:{self.port}")
+            return True
+        except Exception as e:
+            print(f"  ✗ Connection failed: {e}")
+            return False
+    
+    def send_command(self, command):
+        """Send real-time command to robot."""
+        try:
+            if not self.sock:
+                if not self.connect():
+                    return False
+            
+            command_with_end = command + "\n"
+            self.sock.send(command_with_end.encode('utf-8'))
+            print(f"  ✓ Command sent: {command}")
+            return True
+        except Exception as e:
+            print(f"  ✗ Error: {e}")
+            return False
+    
+    def disconnect(self):
+        """Disconnect from robot."""
+        if self.sock:
+            self.sock.close()
+            self.sock = None
 
-# Check robot connection
-print("\n[4] Checking robot connection status...")
-conn_status = robot.ConnectedState()
-print(f"    Connection status: {conn_status}")
-if conn_status[1] != 'Ready':
-    print("    ⚠ WARNING: Robot not ready!")
-    print("    Please connect the robot in RoboDK:")
-    print("      Right-click robot → Connect to robot → Select driver → Connect")
 
-# Check if robot is connected to real hardware
-print("\n[5] Checking if robot can communicate with real hardware...")
-print("    Robot IP (if connected):", robot.ConnectionParams())
+# ============================================================================
+# Test Functions
+# ============================================================================
+
+def test_primary_interface():
+    """Test gripper control via Primary Interface (port 30001)."""
+    print("\n" + "="*70)
+    print("APPROACH 1: Primary Interface (Port 30001)")
+    print("="*70)
+    print("\nThis sends URScript programs to the robot's primary interface.")
+    print("Best for: Complex scripts, programs with logic")
+    
+    robot_ip = input("\nEnter robot IP (default: 192.168.0.10): ").strip() or "192.168.0.10"
+    
+    interface = URPrimaryInterface(robot_ip)
+    
+    try:
+        print("\n[Step 1] Connecting to primary interface...")
+        if not interface.connect():
+            return False
+        
+        print("\n[Step 2] Testing gripper commands...")
+        
+        # Test 1: Digital output control
+        print("\n  [Test 1] Digital output - Open gripper")
+        script = "set_digital_out(0, True)"
+        interface.send_script(script)
+        time.sleep(2)
+        
+        print("\n  [Test 2] Digital output - Close gripper")
+        script = "set_digital_out(0, False)"
+        interface.send_script(script)
+        time.sleep(2)
+        
+        # Test 3: OnRobot RG2 command
+        print("\n  [Test 3] OnRobot RG2 - Open")
+        script = "RG2(110, 40, 0.0, True, False)"
+        interface.send_script(script)
+        time.sleep(3)
+        
+        print("\n  [Test 4] OnRobot RG2 - Close")
+        script = "RG2(40, 40, 0.0, True, False)"
+        interface.send_script(script)
+        time.sleep(3)
+        
+        # Test 5: Robotiq gripper
+        print("\n  [Test 5] Robotiq - Open")
+        script = "rq_open()"
+        interface.send_script(script)
+        time.sleep(2)
+        
+        print("\n  [Test 6] Robotiq - Close")
+        script = "rq_close()"
+        interface.send_script(script)
+        time.sleep(2)
+        
+        print("\n✓ Primary interface tests complete!")
+        interface.disconnect()
+        return True
+        
+    except KeyboardInterrupt:
+        print("\n  Test interrupted")
+        interface.disconnect()
+        return False
+    except Exception as e:
+        print(f"\n✗ Error: {e}")
+        interface.disconnect()
+        return False
+
+
+def test_realtime_interface():
+    """Test gripper control via Real-time Interface (port 30002)."""
+    print("\n" + "="*70)
+    print("APPROACH 2: Real-time Interface (Port 30002)")
+    print("="*70)
+    print("\nThis sends real-time URScript commands.")
+    print("Best for: Quick commands, real-time control")
+    
+    robot_ip = input("\nEnter robot IP (default: 192.168.0.10): ").strip() or "192.168.0.10"
+    
+    interface = URRealtimeInterface(robot_ip)
+    
+    try:
+        print("\n[Step 1] Connecting to real-time interface...")
+        if not interface.connect():
+            return False
+        
+        print("\n[Step 2] Testing gripper commands...")
+        
+        # Test sequence
+        commands = [
+            ("Open gripper (digital out)", "set_digital_out(0, True)"),
+            ("Close gripper (digital out)", "set_digital_out(0, False)"),
+            ("Open RG2", "RG2(110, 40, 0.0, True, False)"),
+            ("Close RG2", "RG2(40, 40, 0.0, True, False)"),
+            ("Partial close RG2", "RG2(60, 40, 0.0, True, False)"),
+        ]
+        
+        for i, (desc, cmd) in enumerate(commands, 1):
+            print(f"\n  [Test {i}] {desc}")
+            interface.send_command(cmd)
+            time.sleep(2)
+        
+        print("\n✓ Real-time interface tests complete!")
+        interface.disconnect()
+        return True
+        
+    except KeyboardInterrupt:
+        print("\n  Test interrupted")
+        interface.disconnect()
+        return False
+    except Exception as e:
+        print(f"\n✗ Error: {e}")
+        interface.disconnect()
+        return False
+
+
+def test_combined_script():
+    """Test sending complete URScript program via TCP."""
+    print("\n" + "="*70)
+    print("APPROACH 3: Complete URScript Program")
+    print("="*70)
+    print("\nThis sends a complete multi-line URScript program.")
+    
+    robot_ip = input("\nEnter robot IP (default: 192.168.0.10): ").strip() or "192.168.0.10"
+    
+    interface = URPrimaryInterface(robot_ip)
+    
+    try:
+        print("\n[Step 1] Connecting...")
+        if not interface.connect():
+            return False
+        
+        print("\n[Step 2] Creating gripper test program...")
+        
+        # Complete URScript program
+        script = """def gripper_test():
+  # Open gripper
+  RG2(110, 40, 0.0, True, False)
+  sleep(2.0)
+  
+  # Close gripper
+  RG2(40, 40, 0.0, True, False)
+  sleep(2.0)
+  
+  # Partial close
+  RG2(60, 40, 0.0, True, False)
+  sleep(2.0)
+  
+  # Open again
+  RG2(110, 40, 0.0, True, False)
+end
+
+gripper_test()
+"""
+        
+        print("  Program:")
+        for line in script.split('\n')[:10]:
+            print(f"    {line}")
+        print("    ...")
+        
+        print("\n[Step 3] Sending program to robot...")
+        input("  Press ENTER to execute (Ctrl+C to cancel)...")
+        
+        interface.send_script(script)
+        
+        print("\n  ✓ Program sent!")
+        print("  ⏳ Executing (watch robot)...")
+        time.sleep(10)
+        
+        print("\n✓ Program execution complete!")
+        interface.disconnect()
+        return True
+        
+    except KeyboardInterrupt:
+        print("\n  Test cancelled")
+        interface.disconnect()
+        return False
+    except Exception as e:
+        print(f"\n✗ Error: {e}")
+        interface.disconnect()
+        return False
+
+
+def test_diagnostic():
+    """Run diagnostic on TCP connection."""
+    print("\n" + "="*70)
+    print("APPROACH 4: Connection Diagnostic")
+    print("="*70)
+    print("\nTest all TCP ports and connection methods.")
+    
+    robot_ip = input("\nEnter robot IP (default: 192.168.0.10): ").strip() or "192.168.0.10"
+    
+    ports_to_test = [
+        (29999, "Dashboard Server"),
+        (30001, "Primary Interface"),
+        (30002, "Real-time Interface"),
+        (30003, "Real-time Data"),
+        (30004, "RTDE Interface"),
+    ]
+    
+    print(f"\n[Testing connectivity to {robot_ip}]")
+    
+    for port, name in ports_to_test:
+        print(f"\n  Port {port} ({name})...")
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(2)
+            sock.connect((robot_ip, port))
+            
+            # Try to receive data
+            try:
+                data = sock.recv(1024, socket.MSG_DONTWAIT)
+                print(f"    ✓ Connected - Received: {data[:50]}")
+            except:
+                print(f"    ✓ Connected (no immediate data)")
+            
+            sock.close()
+            
+        except socket.timeout:
+            print(f"    ✗ Timeout")
+        except ConnectionRefusedError:
+            print(f"    ✗ Connection refused")
+        except Exception as e:
+            print(f"    ✗ Error: {e}")
+    
+    print("\n✓ Diagnostic complete!")
+    return True
+
+
+def main():
+    """Main test menu."""
+    print("\n" + "="*70)
+    print("  GRIPPER METHOD 3: Direct TCP Communication")
+    print("="*70)
+    print("\nChoose approach:\n")
+    print("  1 - Primary Interface (30001) - URScript programs")
+    print("  2 - Real-time Interface (30002) - Quick commands")
+    print("  3 - Complete Script - Multi-line program")
+    print("  4 - Connection Diagnostic - Test all ports")
+    print("  5 - Run ALL tests")
+    print("="*70)
+    
+    choice = input("\nEnter choice (1-5): ").strip()
+    
+    if choice == '1':
+        test_primary_interface()
+    elif choice == '2':
+        test_realtime_interface()
+    elif choice == '3':
+        test_combined_script()
+    elif choice == '4':
+        test_diagnostic()
+    elif choice == '5':
+        print("\nRunning ALL tests...")
+        test_diagnostic()
+        input("\nPress ENTER for next test...")
+        test_primary_interface()
+        input("\nPress ENTER for next test...")
+        test_realtime_interface()
+        input("\nPress ENTER for next test...")
+        test_combined_script()
+    else:
+        print("Invalid choice")
+        return
+    
+    print("\n" + "="*70)
+    print("  TEST COMPLETE")
+    print("="*70)
+
+
+if __name__ == "__main__":
+    main()
 
 # Set to real robot mode
 choice = input("\n[6] Switch to REAL ROBOT mode and test? (y/n): ").strip().lower()
