@@ -268,10 +268,10 @@ class RobotController:
             self._reconnect_if_needed()
             time.sleep(1)  # Extra delay to ensure robot is ready
             
-            # Step 3: Move down to pick position
-            print(f"  → Moving down {pick_offset_mm}mm to grasp object...")
-            self.robot.MoveL(pick_target)
-            self.robot.WaitMove()
+            # # Step 3: Move down to pick position
+            # print(f"  → Moving down {pick_offset_mm}mm to grasp object...")
+            # self.robot.MoveL(pick_target)
+            # self.robot.WaitMove()
             
             # Step 4: Close gripper to grip object
             print("  → Closing gripper...")
@@ -284,14 +284,15 @@ class RobotController:
             self._reconnect_if_needed()
             time.sleep(1)  # Extra delay to ensure robot is ready
             
-            # Step 5: Move back to approach position
-            print("  → Moving back to approach position...")
-            self.robot.MoveL(approach_target)
-            self.robot.WaitMove()
+            # # Step 5: Move back to approach position
+            # print("  → Moving back to approach position...")
+            # self.robot.MoveL(approach_target)
+            # self.robot.WaitMove()
             
             print("✓ Pick operation completed.")
             return True
         except Exception as e:
+
             print(f"Error during pick operation: {e}")
             return False
     
