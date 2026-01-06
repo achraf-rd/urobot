@@ -313,10 +313,11 @@ def main():
     choice = input("\nEnter choice (1-4): ").strip()
     
     # Get server IP
-    default_ip = "192.168.1.10"
-    server_ip = input(f"\nEnter server IP (default: {default_ip}): ").strip()
-    if not server_ip:
-        server_ip = default_ip
+    default_ip = "localhost"
+    # server_ip = input(f"\nEnter server IP (default: {default_ip}): ").strip()
+    # if not server_ip:
+    #     server_ip = default_ip
+    server_ip = default_ip
     
     print(f"\nUsing server IP: {server_ip}")
     print("\nIMPORTANT: Make sure robot server is running:")

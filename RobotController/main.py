@@ -12,6 +12,7 @@ import signal
 from robot_controller import RobotController
 from command_server import CommandServer
 
+ROBOT_IP_FOR_GRIPPER = "192.168.1.10"
 
 def signal_handler(sig, frame):
     """Handle Ctrl+C gracefully."""
@@ -53,7 +54,7 @@ def main():
             print("  4. Enter robot IP and click 'Connect'")
             
             # Ask for robot IP for gripper control
-            robot_ip = input("\nEnter robot IP address (e.g., 192.168.0.10): ").strip()
+            robot_ip = ROBOT_IP_FOR_GRIPPER
             if not robot_ip:
                 print("Warning: No robot IP provided, gripper will not be available")
                 robot_ip = None
