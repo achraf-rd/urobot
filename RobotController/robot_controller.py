@@ -252,12 +252,7 @@ class RobotController:
             
             print(f"Picking object at approach position: {position}")
             
-            # Step 1: Move to approach position
-            print("  → Moving to approach position...")
-            self.robot.MoveJ(approach_target)
-            self.robot.WaitMove()
-            
-            # Step 2: Open gripper
+             # Step 2: Open gripper
             print("  → Opening gripper...")
             self.gripper.open()
             # Wait for gripper program to complete
@@ -267,6 +262,13 @@ class RobotController:
             print("  → Verifying RoboDK connection...")
             self._reconnect_if_needed()
             time.sleep(1)  # Extra delay to ensure robot is ready
+            
+            # Step 1: Move to approach position
+            print("  → Moving to approach position...")
+            self.robot.MoveJ(approach_target)
+            self.robot.WaitMove()
+            
+           
             
             # # Step 3: Move down to pick position
             # print(f"  → Moving down {pick_offset_mm}mm to grasp object...")
