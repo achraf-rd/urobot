@@ -1,0 +1,80 @@
+# .gitignore for UR5 Robotic Sorting System
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# RoboDK
+*.rdk.bak
+*.rdk~
+
+# Test outputs
+test_outputs/
+logs/
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*.cache
+
+# Model files (large - download separately)
+# Uncomment if you don't want to track model files:
+# *.pt
+# *.onnx
+# *.weights
+
+# Camera captures
+captures/
+*.jpg
+*.png
+!docs/**/*.png  # Keep documentation images
+PUBLICATION_CHECKLIST.md
+# Compiled files
+*.pyc
+*.pyo
+
+# OS files
+Thumbs.db
+.DS_Store
+Desktop.ini
+
+# Project specific
+positions_backup.txt
+robot_logs/
+debug_outputs/

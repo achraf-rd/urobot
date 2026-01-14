@@ -1,0 +1,11 @@
+# Core dependencies for Robot Sorting Dashboard
+# Computer Vision and ML
+ultralytics>=8.0.0
+opencv-python>=4.5.0
+numpy>=1.21.0
+
+# Image Processing
+Pillow>=9.0.0
+
+# Optional but recommended
+# python-opencv  # Alternative to opencv-python if issues occur
