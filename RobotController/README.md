@@ -83,7 +83,7 @@ Commands are sent as JSON messages over TCP. Each command should be a valid JSON
     "duration": 2.0
 }
 ```
-
+....
 6. **Get Current Pose**
 ```json
 {"command": "get_pose"}
